@@ -1,4 +1,5 @@
-#!python
+#!/usr/bin/env python
+
 """
 Project: Technical Indicators
 Package: indicator
@@ -9,12 +10,13 @@ Version: 1.0.0
 License: GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007
 """
 
+import sys
 # External dependencies
 import numpy as np
 import pandas as pd
 
 """
-Usage : 
+Usage :
     data = {
         "data": {
             "candles": [
@@ -28,14 +30,14 @@ Usage :
                 ["28-01-2014", 6131.850098, 6163.600098, 6085.950195, 6126.25, 184100],
                 ["29-01-2014", 6161, 6170.450195, 6109.799805, 6120.25, 146700],
                 ["30-01-2014", 6067, 6082.850098, 6027.25, 6073.700195, 208100],
-                ["31-01-2014", 6082.75, 6097.850098, 6067.350098, 6089.5, 146700]        
+                ["31-01-2014", 6082.75, 6097.850098, 6067.350098, 6089.5, 146700]
             ]
         }
     }
-    
+
     # Date must be present as a Pandas DataFrame with ['date', 'open', 'high', 'low', 'close', 'volume'] as columns
     df = pd.DataFrame(data["data"]["candles"], columns=['date', 'open', 'high', 'low', 'close', 'volume'])
-    
+
     # Columns as added by each function specific to their computations
     EMA(df, 'close', 'ema_5', 5)
     ATR(df, 14)
@@ -46,13 +48,13 @@ Usage :
 def HA(df, ohlc=['Open', 'High', 'Low', 'Close']):
     """
     Function to compute Heiken Ashi Candles (HA)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         ohlc: List defining OHLC Column names (default ['Open', 'High', 'Low', 'Close'])
-        
+
     Returns :
-        df : Pandas DataFrame with new columns added for 
+        df : Pandas DataFrame with new columns added for
             Heiken Ashi Close (HA_$ohlc[3])
             Heiken Ashi Open (HA_$ohlc[0])
             Heiken Ashi High (HA_$ohlc[1])
@@ -63,7 +65,7 @@ def HA(df, ohlc=['Open', 'High', 'Low', 'Close']):
     ha_high = 'HA_' + ohlc[1]
     ha_low = 'HA_' + ohlc[2]
     ha_close = 'HA_' + ohlc[3]
-    
+
     df[ha_close] = (df[ohlc[0]] + df[ohlc[1]] + df[ohlc[2]] + df[ohlc[3]]) / 4
 
     df[ha_open] = 0.00
@@ -72,7 +74,7 @@ def HA(df, ohlc=['Open', 'High', 'Low', 'Close']):
             df[ha_open].iat[i] = (df[ohlc[0]].iat[i] + df[ohlc[3]].iat[i]) / 2
         else:
             df[ha_open].iat[i] = (df[ha_open].iat[i - 1] + df[ha_close].iat[i - 1]) / 2
-            
+
     df[ha_high]=df[[ha_open, ha_close, ohlc[1]]].max(axis=1)
     df[ha_low]=df[[ha_open, ha_close, ohlc[2]]].min(axis=1)
 
@@ -81,13 +83,13 @@ def HA(df, ohlc=['Open', 'High', 'Low', 'Close']):
 def SMA(df, base, target, period):
     """
     Function to compute Simple Moving Average (SMA)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         base : String indicating the column name from which the SMA needs to be computed from
         target : String indicates the column name to which the computed data needs to be stored
         period : Integer indicates the period of computation in terms of number of candles
-        
+
     Returns :
         df : Pandas DataFrame with new column added with name 'target'
     """
@@ -100,13 +102,13 @@ def SMA(df, base, target, period):
 def STDDEV(df, base, target, period):
     """
     Function to compute Standard Deviation (STDDEV)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         base : String indicating the column name from which the SMA needs to be computed from
         target : String indicates the column name to which the computed data needs to be stored
         period : Integer indicates the period of computation in terms of number of candles
-        
+
     Returns :
         df : Pandas DataFrame with new column added with name 'target'
     """
@@ -119,73 +121,72 @@ def STDDEV(df, base, target, period):
 def EMA(df, base, target, period, alpha=False):
     """
     Function to compute Exponential Moving Average (EMA)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         base : String indicating the column name from which the EMA needs to be computed from
         target : String indicates the column name to which the computed data needs to be stored
         period : Integer indicates the period of computation in terms of number of candles
         alpha : Boolean if True indicates to use the formula for computing EMA using alpha (default is False)
-        
+
     Returns :
         df : Pandas DataFrame with new column added with name 'target'
     """
 
     con = pd.concat([df[:period][base].rolling(window=period).mean(), df[period:][base]])
-    
+
     if (alpha == True):
         # (1 - alpha) * previous_val + alpha * current_val where alpha = 1 / period
         df[target] = con.ewm(alpha=1 / period, adjust=False).mean()
     else:
         # ((current_val - previous_val) * coeff) + previous_val where coeff = 2 / (period + 1)
         df[target] = con.ewm(span=period, adjust=False).mean()
-    
+
     df[target].fillna(0, inplace=True)
     return df
 
 def ATR(df, period, ohlc=['Open', 'High', 'Low', 'Close']):
     """
     Function to compute Average True Range (ATR)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         period : Integer indicates the period of computation in terms of number of candles
         ohlc: List defining OHLC Column names (default ['Open', 'High', 'Low', 'Close'])
-        
+
     Returns :
-        df : Pandas DataFrame with new columns added for 
+        df : Pandas DataFrame with new columns added for
             True Range (TR)
             ATR (ATR_$period)
     """
     atr = 'ATR_' + str(period)
-
     # Compute true range only if it is not computed and stored earlier in the df
     if not 'TR' in df.columns:
         df['h-l'] = df[ohlc[1]] - df[ohlc[2]]
         df['h-yc'] = abs(df[ohlc[1]] - df[ohlc[3]].shift())
         df['l-yc'] = abs(df[ohlc[2]] - df[ohlc[3]].shift())
-         
+
         df['TR'] = df[['h-l', 'h-yc', 'l-yc']].max(axis=1)
-         
+
         df.drop(['h-l', 'h-yc', 'l-yc'], inplace=True, axis=1)
 
     # Compute EMA of true range using ATR formula after ignoring first row
     EMA(df, 'TR', atr, period, alpha=True)
-    
+
     return df
 
 def SuperTrend(df, period, multiplier, ohlc=['Open', 'High', 'Low', 'Close']):
     """
     Function to compute SuperTrend
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         period : Integer indicates the period of computation in terms of number of candles
         multiplier : Integer indicates value to multiply the ATR
         ohlc: List defining OHLC Column names (default ['Open', 'High', 'Low', 'Close'])
-        
+
     Returns :
-        df : Pandas DataFrame with new columns added for 
+        df : Pandas DataFrame with new columns added for
             True Range (TR), ATR (ATR_$period)
             SuperTrend (ST_$period_$multiplier)
             SuperTrend Direction (STX_$period_$multiplier)
@@ -195,18 +196,18 @@ def SuperTrend(df, period, multiplier, ohlc=['Open', 'High', 'Low', 'Close']):
     atr = 'ATR_' + str(period)
     st = 'ST_' + str(period) + '_' + str(multiplier)
     stx = 'STX_' + str(period) + '_' + str(multiplier)
-    
+
     """
     SuperTrend Algorithm :
-    
+
         BASIC UPPERBAND = (HIGH + LOW) / 2 + Multiplier * ATR
         BASIC LOWERBAND = (HIGH + LOW) / 2 - Multiplier * ATR
-        
+
         FINAL UPPERBAND = IF( (Current BASICUPPERBAND < Previous FINAL UPPERBAND) or (Previous Close > Previous FINAL UPPERBAND))
                             THEN (Current BASIC UPPERBAND) ELSE Previous FINALUPPERBAND)
-        FINAL LOWERBAND = IF( (Current BASIC LOWERBAND > Previous FINAL LOWERBAND) or (Previous Close < Previous FINAL LOWERBAND)) 
+        FINAL LOWERBAND = IF( (Current BASIC LOWERBAND > Previous FINAL LOWERBAND) or (Previous Close < Previous FINAL LOWERBAND))
                             THEN (Current BASIC LOWERBAND) ELSE Previous FINAL LOWERBAND)
-        
+
         SUPERTREND = IF((Previous SUPERTREND = Previous FINAL UPPERBAND) and (Current Close <= Current FINAL UPPERBAND)) THEN
                         Current FINAL UPPERBAND
                     ELSE
@@ -219,7 +220,7 @@ def SuperTrend(df, period, multiplier, ohlc=['Open', 'High', 'Low', 'Close']):
                                 IF((Previous SUPERTREND = Previous FINAL LOWERBAND) and (Current Close < Current FINAL LOWERBAND)) THEN
                                     Current FINAL UPPERBAND
     """
-    
+
     # Compute basic upper and lower bands
     df['basic_ub'] = (df[ohlc[1]] + df[ohlc[2]]) / 2 + multiplier * df[atr]
     df['basic_lb'] = (df[ohlc[1]] + df[ohlc[2]]) / 2 - multiplier * df[atr]
@@ -230,21 +231,21 @@ def SuperTrend(df, period, multiplier, ohlc=['Open', 'High', 'Low', 'Close']):
     for i in range(period, len(df)):
         df['final_ub'].iat[i] = df['basic_ub'].iat[i] if df['basic_ub'].iat[i] < df['final_ub'].iat[i - 1] or df['Close'].iat[i - 1] > df['final_ub'].iat[i - 1] else df['final_ub'].iat[i - 1]
         df['final_lb'].iat[i] = df['basic_lb'].iat[i] if df['basic_lb'].iat[i] > df['final_lb'].iat[i - 1] or df['Close'].iat[i - 1] < df['final_lb'].iat[i - 1] else df['final_lb'].iat[i - 1]
-       
+
     # Set the Supertrend value
     df[st] = 0.00
     for i in range(period, len(df)):
         df[st].iat[i] = df['final_ub'].iat[i] if df[st].iat[i - 1] == df['final_ub'].iat[i - 1] and df['Close'].iat[i] <= df['final_ub'].iat[i] else \
                         df['final_lb'].iat[i] if df[st].iat[i - 1] == df['final_ub'].iat[i - 1] and df['Close'].iat[i] >  df['final_ub'].iat[i] else \
                         df['final_lb'].iat[i] if df[st].iat[i - 1] == df['final_lb'].iat[i - 1] and df['Close'].iat[i] >= df['final_lb'].iat[i] else \
-                        df['final_ub'].iat[i] if df[st].iat[i - 1] == df['final_lb'].iat[i - 1] and df['Close'].iat[i] <  df['final_lb'].iat[i] else 0.00 
-                 
+                        df['final_ub'].iat[i] if df[st].iat[i - 1] == df['final_lb'].iat[i - 1] and df['Close'].iat[i] <  df['final_lb'].iat[i] else 0.00
+
     # Mark the trend direction up/down
     df[stx] = np.where((df[st] > 0.00), np.where((df[ohlc[3]] < df[st]), 'down',  'up'), np.NaN)
 
     # Remove basic and final bands from the columns
     df.drop(['basic_ub', 'basic_lb', 'final_ub', 'final_lb'], inplace=True, axis=1)
-    
+
     df.fillna(0, inplace=True)
 
     return df
@@ -252,21 +253,21 @@ def SuperTrend(df, period, multiplier, ohlc=['Open', 'High', 'Low', 'Close']):
 def MACD(df, fastEMA=12, slowEMA=26, signal=9, base='Close'):
     """
     Function to compute Moving Average Convergence Divergence (MACD)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         fastEMA : Integer indicates faster EMA
         slowEMA : Integer indicates slower EMA
         signal : Integer indicates the signal generator for MACD
         base : String indicating the column name from which the MACD needs to be computed from (Default Close)
-        
+
     Returns :
-        df : Pandas DataFrame with new columns added for 
+        df : Pandas DataFrame with new columns added for
             Fast EMA (ema_$fastEMA)
             Slow EMA (ema_$slowEMA)
             MACD (macd_$fastEMA_$slowEMA_$signal)
             MACD Signal (signal_$fastEMA_$slowEMA_$signal)
-            MACD Histogram (MACD (hist_$fastEMA_$slowEMA_$signal)) 
+            MACD Histogram (MACD (hist_$fastEMA_$slowEMA_$signal))
     """
 
     fE = "ema_" + str(fastEMA)
@@ -275,70 +276,70 @@ def MACD(df, fastEMA=12, slowEMA=26, signal=9, base='Close'):
     sig = "signal_" + str(fastEMA) + "_" + str(slowEMA) + "_" + str(signal)
     hist = "hist_" + str(fastEMA) + "_" + str(slowEMA) + "_" + str(signal)
 
-    # Compute fast and slow EMA    
+    # Compute fast and slow EMA
     EMA(df, base, fE, fastEMA)
     EMA(df, base, sE, slowEMA)
-    
+
     # Compute MACD
     df[macd] = np.where(np.logical_and(np.logical_not(df[fE] == 0), np.logical_not(df[sE] == 0)), df[fE] - df[sE], 0)
-    
+
     # Compute MACD Signal
     EMA(df, macd, sig, signal)
-    
+
     # Compute MACD Histogram
     df[hist] = np.where(np.logical_and(np.logical_not(df[macd] == 0), np.logical_not(df[sig] == 0)), df[macd] - df[sig], 0)
-    
+
     return df
 
 def BBand(df, base='Close', period=20, multiplier=2):
     """
     Function to compute Bollinger Band (BBand)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         base : String indicating the column name from which the MACD needs to be computed from (Default Close)
         period : Integer indicates the period of computation in terms of number of candles
         multiplier : Integer indicates value to multiply the SD
-        
+
     Returns :
-        df : Pandas DataFrame with new columns added for 
+        df : Pandas DataFrame with new columns added for
             Upper Band (UpperBB_$period_$multiplier)
             Lower Band (LowerBB_$period_$multiplier)
     """
-    
+
     upper = 'UpperBB_' + str(period) + '_' + str(multiplier)
     lower = 'LowerBB_' + str(period) + '_' + str(multiplier)
-    
+
     sma = df[base].rolling(window=period, min_periods=period - 1).mean()
     sd = df[base].rolling(window=period).std()
     df[upper] = sma + (multiplier * sd)
     df[lower] = sma - (multiplier * sd)
-    
+
     df[upper].fillna(0, inplace=True)
     df[lower].fillna(0, inplace=True)
-    
+
     return df
 
 def RSI(df, base="Close", period=21):
     """
     Function to compute Relative Strength Index (RSI)
-    
+
     Args :
         df : Pandas DataFrame which contains ['date', 'open', 'high', 'low', 'close', 'volume'] columns
         base : String indicating the column name from which the MACD needs to be computed from (Default Close)
         period : Integer indicates the period of computation in terms of number of candles
-        
+
     Returns :
-        df : Pandas DataFrame with new columns added for 
+        df : Pandas DataFrame with new columns added for
             Relative Strength Index (RSI_$period)
     """
- 
+
     delta = df[base].diff()
     up, down = delta.copy(), delta.copy()
 
     up[up < 0] = 0
     down[down > 0] = 0
-    
+
     rUp = up.ewm(com=period - 1,  adjust=False).mean()
     rDown = down.ewm(com=period - 1, adjust=False).mean().abs()
 
@@ -351,14 +352,14 @@ def RSI(df, base="Close", period=21):
 if __name__ == '__main__':
     import quandl
     import time
-    
+
     df = quandl.get("NSE/NIFTY_50", start_date='1997-01-01')
     df.drop(['Shares Traded', 'Turnover (Rs. Cr)'], inplace=True, axis=1)
- 
+
     # unit test EMA algorithm
     def test_EMA(df, colFrom = 'Close', test_period = 5, ignore = 0, forATR=False):
         colTo = 'ema_' + str(test_period)
-        
+
         # Actual function to test compare
         print('EMA Test with alpha {}'.format(forATR))
         start = time.time()
@@ -385,16 +386,16 @@ if __name__ == '__main__':
                     df.set_value(i, colTest, (((df.get_value(i - 1, colTest) * (test_period - 1)) + df.get_value(i, colFrom)) / test_period))
                 else:
                     df.set_value(i, colTest, (((df.get_value(i, colFrom) - df.get_value(i - 1, colTest)) * coef) + df.get_value(i - 1, colTest)))
-        
+
         df.set_index('Date', inplace=True)
         end = time.time()
         print('Time taken by manual computations for EMA {}'.format(end-start))
- 
+
         df[colTest + '_check'] = df[colTo].round(6) == df[colTest].round(6)
         print('\tTotal Rows: {}'.format(len(df)))
         print('\tColumns Match: {}'.format(df[colTest + '_check'].sum()))
         print('\tSuccess Rate: {}%'.format(round((df[colTest + '_check'].sum() / len(df)) * 100, 2)))
-    
+
     def test_ATR(df, test_period=7):
         print('ATR Test')
         start = time.time()
@@ -412,8 +413,8 @@ if __name__ == '__main__':
         df['h-l'] = df['High'] - df['Low']
         df['h-yc'] = abs(df['High'] - df['Close'].shift())
         df['l-yc'] = abs(df['Low'] - df['Close'].shift())
-        
-        df[colFrom] = df[['h-l', 'h-yc', 'l-yc']].max(axis=1) 
+
+        df[colFrom] = df[['h-l', 'h-yc', 'l-yc']].max(axis=1)
         df.drop(['h-l', 'h-yc', 'l-yc'], inplace=True, axis=1)
 
         df.reset_index(inplace=True)
@@ -427,11 +428,11 @@ if __name__ == '__main__':
                 periodTotal += df.get_value(i, colFrom)
                 df.set_value(i, colTest, (periodTotal / test_period))
             else:
-                df.set_value(i, colTest, (((df.get_value(i - 1, colTest) * (test_period - 1)) + df.get_value(i, colFrom)) / test_period))    
+                df.set_value(i, colTest, (((df.get_value(i - 1, colTest) * (test_period - 1)) + df.get_value(i, colFrom)) / test_period))
         df.set_index('Date', inplace=True)
         end = time.time()
         print('Time taken by manual computations for ATR {}'.format(end-start))
-        
+
         df[colTest + '_check'] = df[colTo].round(6) == df[colTest].round(6)
         print('\tTotal Rows: {}'.format(len(df)))
         print('\tColumns Match: {}'.format(df[colTest + '_check'].sum()))
@@ -460,11 +461,11 @@ if __name__ == '__main__':
         macd_test = macd + '_test'
         sig_test = sig + '_test'
         hist_test = hist + '_test'
-    
+
         colFrom = 'Close'
 
         start = time.time()
-        # Compute fast EMA    
+        # Compute fast EMA
         #EMA(df, base, fE, fastEMA)
         periodTotal = 0
         ignore = 0
@@ -482,8 +483,8 @@ if __name__ == '__main__':
                 df.set_value(i, colTest, (periodTotal / test_period))
             else:
                 df.set_value(i, colTest, (((df.get_value(i, colFrom) - df.get_value(i - 1, colTest)) * coef) + df.get_value(i - 1, colTest)))
-        
-        # Compute slow EMA    
+
+        # Compute slow EMA
         #EMA(df, base, sE, slowEMA)
         periodTotal = 0
         ignore = 0
@@ -501,10 +502,10 @@ if __name__ == '__main__':
                 df.set_value(i, colTest, (periodTotal / test_period))
             else:
                 df.set_value(i, colTest, (((df.get_value(i, colFrom) - df.get_value(i - 1, colTest)) * coef) + df.get_value(i - 1, colTest)))
-        
+
         # Compute MACD
         df[macd_test] = np.where(np.logical_and(np.logical_not(df[fE_test] == 0), np.logical_not(df[sE_test] == 0)), df[fE_test] - df[sE_test], 0)
-        
+
         # Compute MACD Signal
         #EMA(df, macd, sig, signal, slowEMA - 1)
         periodTotal = 0
@@ -524,7 +525,7 @@ if __name__ == '__main__':
                 df.set_value(i, colTest, (periodTotal / test_period))
             else:
                 df.set_value(i, colTest, (((df.get_value(i, colFrom) - df.get_value(i - 1, colTest)) * coef) + df.get_value(i - 1, colTest)))
-        
+
         # Compute MACD Histogram
         df[hist_test] = np.where(np.logical_and(np.logical_not(df[macd_test] == 0), np.logical_not(df[sig_test] == 0)), df[macd_test] - df[sig_test], 0)
 
@@ -548,7 +549,7 @@ if __name__ == '__main__':
         print('\tTotal Rows: {}'.format(len(df)))
         print('\tColumns Match: {}'.format(df[hist + '_check'].sum()))
         print('\tSuccess Rate: {}%'.format(round((df[hist + '_check'].sum() / len(df)) * 100, 2)))
-        
+
     def test_SuperTrend(df, period=10, multiplier=3):
         atr = 'ATR_' + str(period)
         st = 'ST_' + str(period) + '_' + str(multiplier)
@@ -558,33 +559,36 @@ if __name__ == '__main__':
 
         print('SuperTrend Test')
         start = time.time()
+        print(df, period, multiplier)
+        print("exiting", period)
+        sys.exit(666)
         SuperTrend(df, period, multiplier)
         end = time.time()
         print('Time taken by Pandas computations for SuperTrend {}'.format(end-start))
-        
+        sys.exit(4)
         #start = time.time()
         ATR(df, period)
         df['basic_ub_t'] = (df['High'] + df['Low']) / 2 + multiplier * df[atr]
         df['basic_lb_t'] = (df['High'] + df['Low']) / 2 - multiplier * df[atr]
-        
+
         # Compute final upper and lower bands
         df['final_ub_t'] = 0.00
         df['final_lb_t'] = 0.00
         for i in range(period, len(df)):
             df.ix[i, 'final_ub_t'] = df.ix[i, 'basic_ub_t'] if df.ix[i, 'basic_ub_t'] < df.ix[i - 1, 'final_ub_t'] or df.ix[i - 1, 'Close'] > df.ix[i - 1, 'final_ub_t'] else df.ix[i - 1, 'final_ub_t']
             df.ix[i, 'final_lb_t'] = df.ix[i, 'basic_lb_t'] if df.ix[i, 'basic_lb_t'] > df.ix[i - 1, 'final_lb_t'] or df.ix[i - 1, 'Close'] < df.ix[i - 1, 'final_lb_t'] else df.ix[i - 1, 'final_lb_t']
-           
+
         # Set the Supertrend value
         df[st_test] = 0.00
         for i in range(period, len(df)):
             df.ix[i, st_test] = df.ix[i, 'final_ub_t'] if df.ix[i - 1, st_test] == df.ix[i - 1, 'final_ub_t'] and df.ix[i, 'Close'] <= df.ix[i, 'final_ub_t'] else \
                                 df.ix[i, 'final_lb_t'] if df.ix[i - 1, st_test] == df.ix[i - 1, 'final_ub_t'] and df.ix[i, 'Close'] >  df.ix[i, 'final_ub_t'] else \
                                 df.ix[i, 'final_lb_t'] if df.ix[i - 1, st_test] == df.ix[i - 1, 'final_lb_t'] and df.ix[i, 'Close'] >= df.ix[i, 'final_lb_t'] else \
-                                df.ix[i, 'final_ub_t'] if df.ix[i - 1, st_test] == df.ix[i - 1, 'final_lb_t'] and df.ix[i, 'Close'] <  df.ix[i, 'final_lb_t'] else 0.00 
+                                df.ix[i, 'final_ub_t'] if df.ix[i - 1, st_test] == df.ix[i - 1, 'final_lb_t'] and df.ix[i, 'Close'] <  df.ix[i, 'final_lb_t'] else 0.00
 
 #     index = df.index.name
 #     df.reset_index(inplace=True)
-#      
+#
 #     # Compute final upper and lower bands
 #     for i in range(0, len(df)):
 #         if i < period:
@@ -593,13 +597,13 @@ if __name__ == '__main__':
 #             df.set_value(i, 'final_ub', 0.00)
 #             df.set_value(i, 'final_lb', 0.00)
 #         else:
-#             df.set_value(i, 'final_ub', (df.get_value(i, 'basic_ub') 
-#                                          if df.get_value(i, 'basic_ub') < df.get_value(i-1, 'final_ub') or df.get_value(i-1, 'Close') > df.get_value(i-1, 'final_ub') 
+#             df.set_value(i, 'final_ub', (df.get_value(i, 'basic_ub')
+#                                          if df.get_value(i, 'basic_ub') < df.get_value(i-1, 'final_ub') or df.get_value(i-1, 'Close') > df.get_value(i-1, 'final_ub')
 #                                          else df.get_value(i-1, 'final_ub')))
-#             df.set_value(i, 'final_lb', (df.get_value(i, 'basic_lb') 
-#                                          if df.get_value(i, 'basic_lb') > df.get_value(i-1, 'final_lb') or df.get_value(i-1, 'Close') < df.get_value(i-1, 'final_lb') 
+#             df.set_value(i, 'final_lb', (df.get_value(i, 'basic_lb')
+#                                          if df.get_value(i, 'basic_lb') > df.get_value(i-1, 'final_lb') or df.get_value(i-1, 'Close') < df.get_value(i-1, 'final_lb')
 #                                          else df.get_value(i-1, 'final_lb')))
-#      
+#
 #     # Set the Supertrend value
 #     for i in range(0, len(df)):
 #         if i < period:
@@ -616,21 +620,21 @@ if __name__ == '__main__':
 #                                                    else 0.00
 #                                                   )
 #                                             )
-#                                       ) 
+#                                       )
 #                                 )
 #                         )
-#  
+#
 #     if index:
 #         df.set_index(index, inplace=True)
-                  
+
         # Mark the trend direction up/down
         df[stx_test] = np.where((df[st_test] > 0.00), np.where((df['Close'] < df[st_test]), 'down',  'up'), np.NaN)
-     
+
         # Remove basic and final bands from the columns
         df.drop(['basic_ub_t', 'basic_lb_t', 'final_ub_t', 'final_lb_t'], inplace=True, axis=1)
         end = time.time()
         print('Time taken by manual computations for SuperTrend {}'.format(end-start))
- 
+
         print('ST Stats')
         df[st + '_check'] = df[st].round(6) == df[st_test].round(6)
         print('\tTotal Rows: {}'.format(len(df)))
@@ -652,7 +656,7 @@ if __name__ == '__main__':
         HA(df)
         end = time.time()
         print('Time taken by Pandas computations of HA {}'.format(end-start))
-        
+
         # Method 1
         start = time.time()
         df['HA_Close_t']=(df['Open']+ df['High']+ df['Low']+df['Close'])/4
@@ -661,7 +665,7 @@ if __name__ == '__main__':
                 df.ix[i,'HA_Open_t'] = (df.ix[i,'Open'] + df.ix[i,'Open']) / 2
             else:
                 df.ix[i,'HA_Open_t'] = (df.ix[i - 1,'HA_Open_t'] + df.ix[i - 1,'HA_Close_t']) / 2
-      
+
         df['HA_High_t']=df[['HA_Open_t','HA_Close_t','High']].max(axis=1)
         df['HA_Low_t']=df[['HA_Open_t','HA_Close_t','Low']].min(axis=1)
         end = time.time()
@@ -672,16 +676,16 @@ if __name__ == '__main__':
 #         df['HA_Close_t2'] = (df['Open'] + df['High'] + df['Low'] + df['Close']) / 4
 #         idx = df.index.name
 #         df.reset_index(inplace=True)
-#         
+#
 #         for i in range(0, len(df)):
 #             if i == 0:
 #                 df.set_value(i, 'HA_Open_t2', ((df.get_value(i, 'Open') + df.get_value(i, 'Close')) / 2))
 #             else:
 #                 df.set_value(i, 'HA_Open_t2', ((df.get_value(i - 1, 'HA_Open_t2') + df.get_value(i - 1, 'HA_Close_t2')) / 2))
-#                 
+#
 #         if idx:
 #             df.set_index(idx, inplace=True)
-#     
+#
 #         df['HA_High_t2']=df[['HA_Open_t2', 'HA_Close_t2', 'High']].max(axis=1)
 #         df['HA_Low_t2']=df[['HA_Open_t2', 'HA_Close_t2', 'Low']].min(axis=1)
 #         end = time.time()
@@ -707,17 +711,17 @@ if __name__ == '__main__':
         print('\tTotal Rows: {}'.format(len(df)))
         print('\tColumns Match: {}'.format(df['HA_Close_check'].sum()))
         print('\tSuccess Rate: {}%'.format(round((df['HA_Close_check'].sum() / len(df)) * 100, 2)))
-        
+
     test_EMA(df)
     test_EMA(df, forATR=True)
     test_ATR(df)
     test_SuperTrend(df)
     test_MACD(df)
     test_HA(df)
-    
+
     #BBand(df)
-    
+
     #RSI(df)
-    
+
     print(df.head(10))
     print(df.tail(10))
