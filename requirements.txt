@@ -1,4 +1,4 @@
 Quandl==3.3.0
 pandas==1.0.1
-setuptools==45.1.0
+setuptools==65.5.1
 numpy==1.16.0
